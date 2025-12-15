@@ -145,7 +145,7 @@ export default function LessonPage({ params }: LessonPageProps) {
       </div>
 
       {/* Lesson Content with Sidebar */}
-      <div className="mb-8 relative">
+      <div className="mb-8 relative" data-content-start>
         <div className={lesson.type === 'theory' ? 'lg:pr-80' : ''}>
           {lesson.type === 'theory' && (
             <TheoryViewer
@@ -194,7 +194,7 @@ export default function LessonPage({ params }: LessonPageProps) {
       </div>
 
       {/* Navigation Footer */}
-      <Card>
+      <Card data-navigation-footer>
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div>
