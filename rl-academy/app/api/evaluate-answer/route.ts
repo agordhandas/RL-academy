@@ -1,7 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// This is a mock evaluation function. In production, you would call an actual LLM API
-// like OpenAI, Claude, or another service
+// Function to call OpenAI API if configured
+async function callOpenAI(
+  question: string,
+  answer: string,
+  context?: string,
+  expectedConcepts?: string[],
+  followUpPrompt?: string
+): Promise<string | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const systemPrompt = `You are an AI tutor helping students learn reinforcement learning concepts.
+Provide constructive, encouraging feedback on their answers.
+Be specific about what they got right and gently correct any misconceptions.
+Keep responses concise but informative (2-3 paragraphs).
+Use examples when helpful.`;
+
+    const userPrompt = `Question: ${question}
+${context ? `Context: ${context}` : ''}
+${expectedConcepts ? `Key concepts to address: ${expectedConcepts.join(', ')}` : ''}
+
+Student's Answer: ${answer}
+
+${followUpPrompt || 'Please provide feedback on this answer, highlighting strengths and areas for improvement.'}`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || null;
+  } catch (error) {
+    console.error('Error calling OpenAI:', error);
+    return null;
+  }
+}
+
+// This is a mock evaluation function used as fallback when no API key is configured
 async function evaluateWithLLM(
   question: string,
   answer: string,
@@ -121,16 +176,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Evaluate the answer using our mock LLM function
-    // In production, this would call OpenAI, Anthropic, or another LLM API
-    const feedback = await evaluateWithLLM(
+    // Try to get real LLM feedback first, fall back to mock if not available
+    let feedback = await callOpenAI(
       question,
       answer,
       context,
       expectedConcepts,
-      sampleAnswers,
       followUpPrompt
     );
+
+    // Fall back to mock evaluation if OpenAI is not configured or fails
+    if (!feedback) {
+      console.log('Using mock evaluation (no API key or API call failed)');
+      feedback = await evaluateWithLLM(
+        question,
+        answer,
+        context,
+        expectedConcepts,
+        sampleAnswers,
+        followUpPrompt
+      );
+    }
 
     console.log('API: Generated feedback:', feedback ? feedback.substring(0, 100) + '...' : 'No feedback');
 

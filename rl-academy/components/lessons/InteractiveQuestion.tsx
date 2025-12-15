@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MessageSquare, Send, Lightbulb, RefreshCw, Brain, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageSquare, Send, Lightbulb, RefreshCw, Brain, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { InteractiveQuestion as IQuestion } from "@/types/curriculum";
 
 interface InteractiveQuestionProps {
@@ -19,13 +19,14 @@ export default function InteractiveQuestion({ question, onAnswer }: InteractiveQ
   const [isLoading, setIsLoading] = useState(false);
   const [hasAnswered, setHasAnswered] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Start expanded by default
 
   const handleSubmit = async () => {
     if (!answer.trim()) return;
 
     setIsLoading(true);
     setFeedback(""); // Clear any previous feedback
+    setIsExpanded(true); // Keep expanded to show feedback
 
     try {
       const response = await fetch("/api/evaluate-answer", {
@@ -81,17 +82,18 @@ export default function InteractiveQuestion({ question, onAnswer }: InteractiveQ
 
   return (
     <Card className="my-6 border-primary/20">
-      <CardHeader
-        className="cursor-pointer hover:bg-muted/50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <CardHeader>
         <CardTitle className="flex items-center justify-between text-base">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
             <span>Thought Exercise</span>
             {hasAnswered && <CheckCircle2 className="h-4 w-4 text-green-600" />}
           </div>
-          <Button variant="ghost" size="sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </CardTitle>
@@ -160,10 +162,13 @@ export default function InteractiveQuestion({ question, onAnswer }: InteractiveQ
               </div>
 
               {feedback && (
-                <div className="border-l-4 border-primary pl-4">
-                  <p className="text-sm font-semibold text-primary mb-2">Feedback</p>
-                  <div className="text-sm whitespace-pre-wrap">{feedback}</div>
-                </div>
+                <Alert className="bg-blue-50 dark:bg-blue-950/20 border-blue-500">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                  <AlertDescription>
+                    <p className="font-semibold mb-2">AI Feedback</p>
+                    <div className="text-sm whitespace-pre-wrap">{feedback}</div>
+                  </AlertDescription>
+                </Alert>
               )}
 
               <Button
